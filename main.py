@@ -16,7 +16,7 @@ screen = pygame.display.set_mode((width, height))
 pygame.display.set_caption("2048 Game")
 
 # Инициализация переменных игры
-grid_size = 4
+grid_size = 8
 grid = np.array([np.array([0] * grid_size) * grid_size for _ in range(grid_size)])
 
 # Функция для начальной инициализации двух ячеек
@@ -63,7 +63,11 @@ def move_tiles(direction):
                 if grid[i, j] != 0:
                     i1, j1 = i, j
                     val = grid[i, j]
-                    while grid[i1 - 1, j1] == 0 and i1 > 0:
+                    while (grid[i1 - 1, j1] == 0 or grid[i1 - 1, j1] == val) and i1 > 0:
+                        if grid[i1 - 1, j1] == val:
+                            grid[i1 - 1, j1] = val * 2
+                            grid[i1, j1] = 0
+                            break
                         grid[i1 - 1, j1] = val
                         grid[i1, j1] = 0
                         i1 -= 1
@@ -79,8 +83,11 @@ def move_tiles(direction):
                     if i1 >= len(grid) - 1:
                         continue
                     print(i1, j1)
-                    while grid[i1 + 1, j1] == 0 and i1 < len(grid) - 1:
-                        print('da', i1)
+                    while (grid[i1 + 1, j1] == 0 or grid[i1 + 1, j1] == val) and i1 < len(grid) - 1:
+                        if grid[i1 + 1, j1] == val:
+                            grid[i1 + 1, j1] = val * 2
+                            grid[i1, j1] = 0
+                            break
                         grid[i1 + 1, j1] = val
                         grid[i1, j1] = 0
                         i1 += 1
@@ -93,7 +100,11 @@ def move_tiles(direction):
                 if grid[i, j] != 0:
                     i1, j1 = i, j
                     val = grid[i, j]
-                    while grid[i1, j1 - 1] == 0 and j1 > 0:
+                    while (grid[i1, j1 - 1] == 0 or grid[i1, j1 - 1] == val) and j1 > 0:
+                        if grid[i1, j1 - 1] == val:
+                            grid[i1, j1 - 1] = val * 2
+                            grid[i1, j1] = 0
+                            break
                         grid[i1, j1 - 1] = val
                         grid[i1, j1] = 0
                         j1 -= 1
@@ -109,8 +120,11 @@ def move_tiles(direction):
                     if j1 >= len(grid[i]) - 1:
                         continue
                     print(i1, j1)
-                    while grid[i1, j1 + 1] == 0 and j1 < len(grid[i]) - 1:
-                        print('da', i1)
+                    while (grid[i1, j1 + 1] == 0 or grid[i1, j1 + 1] == val) and j1 < len(grid[i]) - 1:
+                        if grid[i1, j1 + 1] == val:
+                            grid[i1, j1 + 1] = val * 2
+                            grid[i1, j1] = 0
+                            break
                         grid[i1, j1 + 1] = val
                         grid[i1, j1] = 0
                         j1 += 1
