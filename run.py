@@ -1,123 +1,109 @@
-import pygame
 import sys
-
-from model import Model
+import pygame
+import time
+from logic import Game
 from view import View
 from controller import Controller
-
-
-class Button:
-    def __init__(self, text, x, y, width, height, color, hover_color, text_color, action):
-        self.text = text
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.color = color
-        self.hover_color = hover_color
-        self.text_color = text_color
-        self.action = action
-        self.is_hovered = False
-        self.scale = 1.0
-
-    def draw(self, surface, font):
-        if self.is_hovered:
-            self.scale = min(1.15, self.scale + 0.0005)
-            width = int(self.width * self.scale)
-            height = int(self.height * self.scale)
-            x = self.x - (width - self.width) // 2
-            y = self.y - (height - self.height) // 2
-            pygame.draw.rect(surface, self.hover_color, (x, y, width, height))
-        else:
-            self.scale = max(1.0, self.scale - 0.0005)
-            width = int(self.width * self.scale)
-            height = int(self.height * self.scale)
-            x = self.x - (width - self.width) // 2
-            y = self.y - (height - self.height) // 2
-            pygame.draw.rect(surface, self.color, (x, y, width, height))
-
-        text_surface = font.render(self.text, True, self.text_color)
-        text_rect = text_surface.get_rect()
-        text_rect.center = (self.x + (self.width // 2), self.y + (self.height // 2))
-        surface.blit(text_surface, text_rect)
-
-    def check_hover(self, mouse_pos):
-        if self.x < mouse_pos[0] < self.x + self.width and self.y < mouse_pos[1] < self.y + self.height:
-            self.is_hovered = True
-        else:
-            self.is_hovered = False
+from button import AnimatedButton
+from const import WIDTH, HEIGHT, FONT_PATH, COLOR2, COLOR4, COLOR8, COLOR16, WHITE, BROWN
 
 
 class Menu:
-    def __init__(self, width, height):
+    def __init__(self):
         pygame.init()
-        self.width = width
-        self.height = height
-        self.screen = pygame.display.set_mode((self.width, self.height))
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("2048")
+        # read best score data
+        file = open('data.txt')
+        data = file.readlines()
+        file.close()
+        self.best_score = data[0].rstrip()
+        self.grid_size = data[1].rstrip()
+        # create best score title
+        self.best_score_text = pygame.font.Font(FONT_PATH, 30).render('Best score: ' + self.best_score, True, BROWN)
+        self.best_score_text_rect = self.best_score_text.get_rect(center=(200, 65))
+        # sounds
+        self.click_sound = pygame.mixer.Sound('sounds/click.wav')
+        self.exit_sound = pygame.mixer.Sound('sounds/exit.wav')
+        # create menu buttons
+        self.buttons = []
+        self.create_buttons()
 
-        self.color1 = (238, 228, 218)
-        self.color2 = (237, 224, 200)
-        self.color3 = (242, 177, 121)
-        self.color4 = (245, 149, 99)
-        self.BROWN = (119, 110, 101)
-        self.WHITE = (249, 246, 242)
-
-        self.font = pygame.font.Font('ClearSans-Bold.ttf', 20)
-
+    def create_buttons(self):
+        # color grid size buttons
+        button_4_color, button_8_color, button_16_color = COLOR4, COLOR4, COLOR4
+        if self.grid_size == '4':
+            button_4_color = COLOR8
+        elif self.grid_size == '8':
+            button_8_color = COLOR8
+        else:
+            button_16_color = COLOR8
+        # create button list
         self.buttons = [
-            Button('Новая игра', 100, 40, 200, 50, self.color1, self.color1, self.BROWN, self.new_game),
-            Button('Загрузить игру', 100, 130, 200, 50, self.color2, self.color2, self.BROWN, self.load_game),
-            Button('Настройки', 100, 220, 200, 50, self.color3, self.color3, self.WHITE, self.settings),
-            Button('Выход', 100, 310, 200, 50, self.color4, self.color4, self.WHITE, self.exit)
-        ]
+            AnimatedButton('New game', 100, 130, 200, 50, COLOR2, BROWN, 20, self.new_game),
+            AnimatedButton('4', 60, 205, 70, 70, button_4_color, WHITE, 20, self.change_gs4, animated=False),
+            AnimatedButton('8', 160, 205, 70, 70, button_8_color, WHITE, 20, self.change_gs8, animated=False),
+            AnimatedButton('16', 260, 205, 70, 70, button_16_color, WHITE, 20, self.change_gs16, animated=False),
+            AnimatedButton('Exit', 100, 310, 200, 50, COLOR16, WHITE, 20, self.exit)]
 
     def new_game(self):
+        # create new game
         pygame.init()
-        grid_size = 4
-        model = Model(grid_size)
-        view = View(model)
-        controller = Controller(model, view)
-
+        game = Game(int(self.grid_size), 2048 * (int(self.grid_size) ** 2 // 16))
+        view = View(game)
+        controller = Controller(game, view)
         while True:
-            view.screen.fill(view.WHITE)
-            view.draw_grid()
+            # update screen and check events
             controller.handle_events()
+            controller.check_win_losing()
             pygame.display.flip()
-            pygame.time.Clock().tick(30)
 
-    def load_game(self):
-        pass
+    def change_gs4(self):
+        # set grid size value to 4 and create buttons again
+        self.grid_size = '4'
+        self.create_buttons()
 
-    def settings(self):
-        pass
+    def change_gs8(self):
+        # set grid size value to 8 and create buttons again
+        self.grid_size = '8'
+        self.create_buttons()
+
+    def change_gs16(self):
+        # set grid size value to 16 and create buttons again
+        self.grid_size = '16'
+        self.create_buttons()
 
     def exit(self):
+        self.exit_sound.play()
+        pygame.time.wait(250)
         pygame.quit()
         sys.exit()
 
     def run(self):
         while True:
-            self.screen.fill('white')
-            pygame.event.pump()
+            # update screen
+            self.screen.fill(WHITE)
             mouse_pos = pygame.mouse.get_pos()
-
+            # check buttons hover
             for button in self.buttons:
                 button.check_hover(mouse_pos)
-                button.draw(self.screen, self.font)
-
+                button.draw(self.screen)
+            # draw best score title
+            self.screen.blit(self.best_score_text, self.best_score_text_rect)
+            # check pygame events
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
+                # check buttons click
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     for button in self.buttons:
                         if button.is_hovered:
+                            self.click_sound.play()
                             button.action()
-
             pygame.display.update()
 
 
 if __name__ == "__main__":
-    menu = Menu(400, 400)
+    menu = Menu()
     menu.run()
